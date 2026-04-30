@@ -1,6 +1,7 @@
 **/out
 **/tmp
 **/old
+oss.sonatype.org
 
 # Latex
 **/*.aux
