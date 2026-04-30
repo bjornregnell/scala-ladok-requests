@@ -1,0 +1,35 @@
+**/tmp
+**/old
+
+# Latex
+**/*.aux
+**/*.dvi
+**/*.log
+**/*.nav
+**/*.out
+**/*.snm
+**/*.vrb
+**/*.synctex.gz
+**/*.synctex.gz(busy)
+**/*.toc
+**/*.fdb_latexmk
+**/*.fls
+
+# Java / Scala
+**/.scala-build
+**/*.class
+**/.metals
+**/.bloop
+**/.vscode
+**/metals.sbt
+**/.bsp
+**/.scalafmt.conf
+**/.ammonite
+**/target
+
+# Editor swap files
+*.swp   # vim
+*~      # emacs
+
+.idea
+.code-workspace
