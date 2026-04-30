@@ -5,6 +5,7 @@ A simple Scala 3 library for getting stuff from Ladok if you are a teacher and h
 
 Add these directives to your scala-cli script:
 ```scala
+//> using scala 3.8.3
 //> using dep se.bjornregnell::scala-ladok-requests:0.1.0
 ```
 
