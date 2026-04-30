@@ -1,5 +1,6 @@
 //> using scala 3.8.3
 //> using toolkit 0.9.2
+//> using dep com.lihaoyi::requests:0.9.3
 
 /** To search for a students email 
  * Run using either first name last name strings or personnummer 
@@ -7,8 +8,6 @@
   * `scala-cli ladok.scala -- YYYYMMDDCCCC`
   */
 package ladok
-
-import sttp.client4.quick.*
 
 val LadokBase = "https://start.ladok.se/gui/proxy/studentinformation/internal/student"
 
@@ -28,20 +27,24 @@ def readCookieFile(): (String, String) =
     .getOrElse(sys.error("XSRF-TOKEN not found in cookie string"))
   (cookies, xsrf)
 
+val LadokHeaders = Map(
+  "X-Requested-With" -> "XMLHttpRequest",
+  "Accept" -> "application/vnd.ladok-studentinformation+json, application/json",
+  "Content-Type" -> "application/vnd.ladok-studentinformation+json",
+)
+
 def get(cookies: String, xsrf: String, url: String): ujson.Value =
-  val resp = quickRequest
-    .get(uri"$url")
-    .header("Cookie", cookies)
-    .header("X-XSRF-TOKEN", xsrf)
-    .header("X-Requested-With", "XMLHttpRequest")
-    .header("Accept", "application/vnd.ladok-studentinformation+json, application/json")
-    .header("Content-Type", "application/vnd.ladok-studentinformation+json")
-    .send()
-  if resp.code.code != 200 then
-    sys.error(s"HTTP ${resp.code}: ${resp.body.take(500)}")
-  if !resp.body.trim.startsWith("{") && !resp.body.trim.startsWith("[") then
-    sys.error(s"Expected JSON but got (first 500 chars):\n${resp.body.take(500)}")
-  ujson.read(resp.body)
+  val resp = requests.get(
+    url,
+    headers = LadokHeaders + ("Cookie" -> cookies) + ("X-XSRF-TOKEN" -> xsrf),
+    check = false,
+  )
+  if resp.statusCode != 200 then
+    sys.error(s"HTTP ${resp.statusCode}: ${resp.text().take(500)}")
+  val body = resp.text()
+  if !body.trim.startsWith("{") && !body.trim.startsWith("[") then
+    sys.error(s"Expected JSON but got (first 500 chars):\n${body.take(500)}")
+  ujson.read(body)
 
 def searchByPnr(cookies: String, xsrf: String, pnr: String): ujson.Value =
   get(cookies, xsrf, s"$LadokBase/filtrera?personnummer=$pnr&page=1&limit=25")
