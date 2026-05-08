@@ -2,15 +2,7 @@
 A simple Scala 3 library for getting stuff from Ladok if you are a teacher and have a cookie.
 
 
-## How to use this lib
-
-Add these directives to your scala-cli script:
-```scala
-//> using scala 3.8.3
-//> using dep se.bjornregnell::scala-ladok-requests:0.2.0
-```
-
-## How to package a fat jar and run it
+## How to package the app as a fat jar and run it
 
 If you clone this repo you can:
 ```
@@ -21,6 +13,13 @@ Then you can run the app like so:
 ./ladok.jar --help
 ```
 
+## How to use this code as a lib in your own apps
+
+Add these directives to your scala-cli script:
+```scala
+//> using scala 3.8.3
+//> using dep se.bjornregnell::scala-ladok-requests:0.2.0
+```
 
 ## How to copy your session cookie from Firefox after Ladok Login
 
