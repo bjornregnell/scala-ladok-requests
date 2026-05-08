@@ -37,11 +37,12 @@ Add these directives to your scala-cli script:
 
 ## How to publish using scala-cli
 
-Publish to Maven Central:
+After you have setup everything you can, if you have access, publish to Maven Central:
 ```
 scala-cli --power publish .
 ```
 
+### Setting up publish
 
 Before that you need too these tricky steps:
 
