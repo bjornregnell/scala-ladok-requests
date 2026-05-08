@@ -13,150 +13,324 @@
   */
 package ladok
 
+import requests.Response as HTTP
+import ujson.Value       as JSON
+
+val help = 
+  s"""|Usage:
+      |  scala ladok.scala -- --help
+      |  scala ladok.scala -- --deltagare <kurskod> 
+      |  scala ladok.scala -- --deltagare <kurskod> <tillfälle1> <tillfälle2> ...
+      |  scala ladok.scala -- <search input>
+      |      |
+      |<search input> can be one or more of these items
+      |  <perssonnummer>
+      |  '<förnamn> <efternamn>'
+      |  '<efternamn>, <förnamn>' 
+      |Names must be inside quotes. 
+      |If name contains comma then efternamn comes before förnamn.
+      |Wildcards like Svens* are supported for name search.
+      |
+      |You can use personnummer in any below form:
+      |  20101201-1234 101201-1234 1012011234 201012011234
+      |
+      |Put the full Cookie header value from browser dev tools into ~/.ladok-cookie
+      |
+      |More usage info and how to copy the cookie header is available in README here:
+      |https://github.com/bjornregnell/scala-ladok-requests
+      |""".stripMargin
+
+val home = "https://github.com/bjornregnell/scala-ladok-requests"
+
+val welcome = s"*** Välkommen till scala-ladok-requests!\nSe README här: $home\n"
+
+val HttpResponseOK = 200 
+
+val NotLoggedInHintInResponse = "saknar behörighet"
+
 val LadokProxy = "https://start.ladok.se/gui/proxy"
+
 val StudentBase = s"$LadokProxy/studentinformation/internal/student"
+
+val HelpToFindCookie = 
+  s"""|Open Firefox and press F12 to access developer tools.
+      |After you have logged in to Ladok:
+      |  Goto the Network Tab and find a "File" row with "inloggadanvandare"
+      |  Goto the XHR Tab and then to Headers and scroll down to Request Headers 
+      |  Find the Cookie entry and select all the text after "Cookie:"
+      |    It starts with something similar to LADOK_LANG=sv; XSRF-TOKEN=9f6685a9....
+      |  Copy the whole cookie text""".stripMargin
+
+val HelpToPasteCookie = 
+  s"""|Paste the cookie text into this file:
+      |${Cookie.defaultFile}
+      |More information: $home""".stripMargin
+
+case class Cookie(cookies: String, xsrf: String):
+  def authHeaders = Map(
+    "Cookie" -> cookies,
+    "X-XSRF-TOKEN" -> xsrf,
+    "X-Requested-With" -> "XMLHttpRequest",
+    "Accept" -> "application/json",
+    "Content-Type" -> "application/json",
+  )
+object Cookie:
+  val defaultFile = os.home / ".ladok-cookie"
+  given defaultCookie: Cookie = readCookieFile(defaultFile)
+
+  /** Read the full cookie string and extract XSRF token from ~/.ladok-cookie */
+  def readCookieFile(cookieFile: os.Path): Cookie =
+    if !os.exists(cookieFile) then
+      sys.error(s"""~/.ladok-cookie not found.\n$HelpToFindCookie\n$HelpToPasteCookie""")
+    val cookies = os.read(cookieFile).replaceAll("\\s+", " ").trim
+    val xsrf = cookies.split(";").map(_.trim)
+      .find(_.startsWith("XSRF-TOKEN="))
+      .map(_.stripPrefix("XSRF-TOKEN="))
+      .getOrElse(sys.error("XSRF-TOKEN not found in cookie string"))
+    Cookie(cookies, xsrf)
+end Cookie
+
+case class Student(student: JSON)(using cookie: Cookie):
+  def get(key: String): String = student(key).str  
+  lazy val Kontakt: JSON = getKontakt(Uid)
+  lazy val Epost: String = util.Try(Kontakt("Epostadress").str).getOrElse("") 
+  lazy val Telefonnummer: String = util.Try(Kontakt("Telefonnummer").str).getOrElse("") 
+  lazy val Uid = get("Uid")
+  lazy val Fornamn = get("Fornamn")
+  lazy val Efternamn = get("Efternamn")
+  lazy val Personnummer = get("Personnummer")
+  
+  def show: String = s"$Personnummer;$Efternamn, $Fornamn;$Epost;$Telefonnummer"
+
+  def showKeys: String = 
+    s"""|         Uid: $Uid
+        |     Fornamn: $Fornamn
+        |   Efternamn: $Efternamn
+        |Personnummer: $Personnummer
+        |""".stripMargin
+
+  def showAll: String = student.obj.mkString("\n")
+object Student:
+  def showHeadings = s"Personnummer;Namn;Epost;Telefonnummer"
+end Student
+
+case class Kurs(
+  uid: String, 
+  kod: String, 
+  tillfalle: String, 
+  start: String, 
+  slut: String, 
+  namn: String
+)
+
+def log(msg: String): Unit = System.err.println(Console.GREEN + msg + Console.RESET)
+
+def err(msg: String): Unit = System.err.println(Console.RED + msg + Console.RESET)
+
+def warn(msg: String): Unit = 
+  System.err.println(Console.YELLOW + Console.REVERSED + msg + Console.RESET)
+
 lazy val outDir = 
   if !os.exists(os.pwd / "out") then os.makeDir(os.pwd / "out")
   os.pwd / "out"
 
-/** Read the full cookie string and extract XSRF token from ~/.ladok-cookie */
-def readCookieFile(): (String, String) =
-  val cookieFile = os.home / ".ladok-cookie"
-  if !os.exists(cookieFile) then
-    sys.error(
-      "~/.ladok-cookie not found.\n" +
-      "In Firefox DevTools → Network → click an XHR request → Headers tab\n" +
-      "Copy the full Cookie: header value into ~/.ladok-cookie"
-    )
-  val cookies = os.read(cookieFile).replaceAll("\\s+", " ").trim
-  val xsrf = cookies.split(";").map(_.trim)
-    .find(_.startsWith("XSRF-TOKEN="))
-    .map(_.stripPrefix("XSRF-TOKEN="))
-    .getOrElse(sys.error("XSRF-TOKEN not found in cookie string"))
-  (cookies, xsrf)
+val outFilePrefix = "Deltagare"
 
-def authHeaders(cookies: String, xsrf: String) = Map(
-  "Cookie" -> cookies,
-  "X-XSRF-TOKEN" -> xsrf,
-  "X-Requested-With" -> "XMLHttpRequest",
-  "Accept" -> "application/json",
-  "Content-Type" -> "application/json",
-)
+object Abort:
 
-def get(cookies: String, xsrf: String, url: String): ujson.Value =
-  val resp = requests.get(url, headers = authHeaders(cookies, xsrf), check = false)
-  if resp.statusCode != 200 then
-    sys.error(s"HTTP ${resp.statusCode}: ${resp.text().take(500)}")
-  val body = resp.text()
-  if !body.trim.startsWith("{") && !body.trim.startsWith("[") then
-    sys.error(s"Expected JSON but got (first 500 chars):\n${body.take(500)}")
+  def ifNotOK(response: HTTP): Unit = {
+    val body = response.text()
+
+    val isNotAuthorized = body.contains(NotLoggedInHintInResponse)
+
+    if response.statusCode != HttpResponseOK || isNotAuthorized then 
+      err(body)
+    
+      if body.contains(NotLoggedInHintInResponse) then
+        warn("\nDu måste logga in och kopiera kakan!\n")
+        log(s"$HelpToFindCookie") 
+        println(s"  cat >~/.ladok-cookie\n")
+
+      err(s"HTTP ${response.statusCode}")
+      System.exit(1)
+  }
+
+  def ifNotJSON(body: String, truncateErr: Int = 800): Unit = 
+    if !body.trim.startsWith("{") && !body.trim.startsWith("[") then
+      val n = 800
+      sys.error(s"Expected JSON but got:\n${body.take(truncateErr)}...") 
+
+  def apply(msg: String): Unit = 
+    err(msg)
+    System.exit(1)
+
+end Abort 
+
+def get(url: String)(using cookie: Cookie): JSON =
+  val response = requests.get(url, headers = cookie.authHeaders, check = false)
+  Abort.ifNotOK(response)
+  val body = response.text()
+  Abort.ifNotJSON(body)
   ujson.read(body)
 
-def put(cookies: String, xsrf: String, url: String, body: ujson.Value): requests.Response =
-  val resp = requests.put(
+def put(url: String, body: JSON)(using cookie: Cookie): requests.Response =
+  val response = requests.put(
     url,
-    headers = authHeaders(cookies, xsrf),
+    headers = cookie.authHeaders,
     data = body.render(),
     check = false,
   )
-  if resp.statusCode != 200 then
-    sys.error(s"HTTP ${resp.statusCode}: ${resp.text().take(500)}")
-  resp
+  Abort.ifNotOK(response)
+  response
 
-def searchByPnr(cookies: String, xsrf: String, pnr: String): ujson.Value =
-  get(cookies, xsrf, s"$StudentBase/filtrera?personnummer=$pnr&page=1&limit=25")
+def searchByPnr(pnr: String)(using cookie: Cookie): JSON =
+  get(s"$StudentBase/filtrera?personnummer=$pnr&page=1&limit=25")
 
-def searchByName(cookies: String, xsrf: String, fornamn: String, efternamn: String): ujson.Value =
-  get(cookies, xsrf, s"$StudentBase/filtrera?fornamn=$fornamn&efternamn=$efternamn&page=1&limit=25&orderby=EFTERNAMN_ASC&orderby=FORNAMN_ASC&orderby=PERSONNUMMER_ASC")
+def searchByName(fornamn: String, efternamn: String)(using cookie: Cookie): JSON =
+  get(s"$StudentBase/filtrera?fornamn=$fornamn&efternamn=$efternamn&page=1&limit=25&orderby=EFTERNAMN_ASC&orderby=FORNAMN_ASC&orderby=PERSONNUMMER_ASC")
 
-def getKontakt(cookies: String, xsrf: String, uid: String): ujson.Value =
-  get(cookies, xsrf, s"$StudentBase/$uid/kontaktuppgifter")
+def findAllStudents(pnrOrName: String): Seq[Student] = {
+  val maybePersonnummer = pnrOrName.toPersonnummer
+  val json = 
+    if maybePersonnummer.isDefined then 
+      val pnr = maybePersonnummer.get
+      searchByPnr(pnr)
+    else 
+      val (fornamn, efternamn) = 
+        if pnrOrName.isEfternamnKommaFörnamn then
+          val parts = pnrOrName.split(',').map(_.trim).filter(_.nonEmpty)
+          (parts.lift(1).getOrElse("*"), parts.lift(0).getOrElse("*"))
+        else
+          val parts = pnrOrName.split(' ').map(_.trim).filter(_.nonEmpty)
+          (parts.lift(0).getOrElse("*"), parts.lift(1).getOrElse("*"))
 
-def searchKurstillfalle(cookies: String, xsrf: String, kurskod: String): ujson.Value =
-  get(cookies, xsrf, s"$LadokProxy/resultat/internal/kurstillfalle/filtrera?kurskod=$kurskod&page=1&limit=100&orderby=KURSBENAMNING_ASC&orderby=KURSKOD_ASC&orderby=START_DATUM_DESC&orderby=KURSTILLFALLESKOD_ASC")
+      searchByName(fornamn, efternamn)
+    end if
 
-def exportDeltagare(cookies: String, xsrf: String, uid: String): String =
+  extractStudents(json)
+}
+
+def getKontakt(uid: String)(using cookie: Cookie): JSON =
+  get(s"$StudentBase/$uid/kontaktuppgifter")
+
+def searchKurstillfalle(kurskod: String)(using cookie: Cookie): JSON =
+  get(s"$LadokProxy/resultat/internal/kurstillfalle/filtrera?kurskod=$kurskod&page=1&limit=100&orderby=KURSBENAMNING_ASC&orderby=KURSKOD_ASC&orderby=START_DATUM_DESC&orderby=KURSTILLFALLESKOD_ASC")
+
+def getKurs(kurskod: String)(using cookie: Cookie): Seq[Kurs] = {
+  val json = searchKurstillfalle(kurskod)
+  val tillfallen = json("Resultat").arr
+  if tillfallen.isEmpty then
+    println(s"No course instance found for $kurskod.")
+    sys.exit(1)
+
+  val kurser = for tillfalle <- tillfallen yield {
+    val uid = tillfalle("Uid").str
+    val tillfallesKod = tillfalle("TillfallesKod").str
+    val start = tillfalle("Startdatum").str
+    val slut = tillfalle("Slutdatum").str
+    val namn = tillfalle("Utbildningsinstans")("Benamning").arr
+      .find(_("Sprakkod").str == "sv").map(_("Text").str).getOrElse("?")
+
+    Kurs(uid=uid, kod=kurskod, tillfalle=tillfallesKod, start=start, slut=slut, namn=namn)
+  }
+  kurser.toSeq
+}
+
+/** Download csv of all participant of uid of utbildningstillfalle */
+def exportDeltagare(uid: String)(using cookie: Cookie): (info: String, csv: String) = {
   val body = ujson.Obj(
     "utbildningstillfalleUID" -> ujson.Arr(uid),
     "deltagaretillstand" -> ujson.Arr("EJ_PABORJAD", "REGISTRERAD", "AVKLARAD"),
     "orderby" -> ujson.Arr("EFTERNAMN_ASC", "FORNAMN_ASC", "PERSONNUMMER_ASC"),
   )
-  val resp = put(cookies, xsrf, s"$LadokProxy/studiedeltagande/internal/deltagare/kurstillfalle/export", body)
-  val text = resp.text()
+  val response = put(s"$LadokProxy/studiedeltagande/internal/deltagare/kurstillfalle/export", body)
+  val text = response.text()
   // Ladok returns CSV wrapped in a JSON string
-  try ujson.read(text).str catch case _: Exception => text
+  val csv = try ujson.read(text).str catch case _: Exception => text
+  val lines = csv.split("\n")
+  val skip = 6 // lines includes a 6 lines + 1 empty line preamble with info about the export
+  (info = lines.take(skip).mkString("\n"), csv = lines.drop(skip + 1).mkString("\n"))
+}
 
-/** Try to extract email from the kontaktuppgifter JSON. */
-def extractEmail(kontakt: ujson.Value): String =
-  val json = kontakt.obj
-  val candidates = Seq("Epostadress", "Email", "Epost", "epostadress", "email")
-  candidates.find(json.contains).map(json(_).str).getOrElse:
-    s"Email field not found. Full response:\n${kontakt.render(indent = 2)}"
+extension (searchResult: JSON) 
+  def extractStudents: Seq[Student] = 
+    val results = searchResult("Resultat").arr
+    if results.isEmpty then Seq() 
+    else results.map(s => Student(s)).toSeq
+
+extension (s: String) 
+  def isKurskod: Boolean = 
+    val t = s.trim.toUpperCase()
+    t.length == 6 && t.forall(_.isLetterOrDigit)
+
+  def isEfternamnKommaFörnamn: Boolean = s.count(_ == ',') == 1 
+
+  def toPersonnummer: Option[String] =
+    val currentYear = java.time.Year.now().getValue().toString.drop(2).toInt
+    val t = s.trim.filterNot(c => c == '-')
+    if !t.forall(_.isDigit) || s.count(_ == '-') > 1 then None
+    else if t.length == 12 then Some(t)
+    else if t.take(2).toIntOption.map(_ > currentYear).getOrElse(false) then Some(s"19$t")
+    else Some(s"20$t")
 
 @main def Main(args: String*): Unit =
-  if args.isEmpty then
-    println("Usage:")
-    println("  scala-cli ladok.scala -- <personnummer>")
-    println("  scala-cli ladok.scala -- <fornamn> <efternamn>")
-    println("  scala-cli ladok.scala -- --kurskod <kod> --adresslista <fil.csv>")
-    println()
-    println("Wildcards like Regn* are supported for name search.")
-    println("Put the full Cookie header value from Firefox DevTools into ~/.ladok-cookie")
-    sys.exit(1)
+  def errMissingKurskod(opt: String) = err(s"ange kurskod, tex såhär: --deltagare EDAB05")
 
-  val (cookies, xsrf) = readCookieFile()
-  val a = args.toIndexedSeq
+  args.toSeq match
+    case Seq("--help") | Seq("-h") | Seq("--hjälp") => println(help)
 
-  val kurskodIdx = a.indexOf("--kurskod")
-  val adresslistaIdx = a.indexOf("--adresslista")
+    case Seq("--deltagare") => errMissingKurskod("--deltagare")  
 
-  if kurskodIdx >= 0 || adresslistaIdx >= 0 then
-    if kurskodIdx < 0 || adresslistaIdx < 0 then
-      sys.error("Both --kurskod and --adresslista must be specified.")
-    val kurskod = a(kurskodIdx + 1)
-    val filnamn = a(adresslistaIdx + 1)
+    case Seq("--tillfälle") => errMissingKurskod("--tillfälle")
 
-    println(s"Searching for course $kurskod...")
-    val result = searchKurstillfalle(cookies, xsrf, kurskod)
-    val tillfallen = result("Resultat").arr
-    if tillfallen.isEmpty then
-      println(s"No course instance found for $kurskod.")
-      sys.exit(1)
+    case Seq("--tillfälle", kurskod) => 
+      val tillfallen = getKurs(kurskod)
+      for k <- tillfallen do
+        import k.*
+        println(s"$kurskod;$start--$slut;$namn;$tillfalle")
 
-    val tillfalle = tillfallen(0)
-    val uid = tillfalle("Uid").str
-    val kod = tillfalle("TillfallesKod").str
-    val start = tillfalle("Startdatum").str
-    val slut = tillfalle("Slutdatum").str
-    val namn = tillfalle("Utbildningsinstans")("Benamning").arr
-      .find(_("Sprakkod").str == "sv").map(_("Text").str).getOrElse("?")
-    println(s"Found: $kurskod $namn ($kod, $start -- $slut)")
-    if tillfallen.length > 1 then
-      println(s"Note: ${tillfallen.length} instances found, using most recent.")
+      log(s"Totalt ${tillfallen.length} tillfällen:\n${tillfallen.map{_.tillfalle}.mkString(", ")}")
 
-    println(s"Exporting participant list...")
-    val csv = exportDeltagare(cookies, xsrf, uid)
-    os.write.over(outDir / filnamn, csv)
-    println(s"Saved to $outDir/$filnamn")
-  else
-    println("Searching for student...")
-    val searchResult =
-      if a.length == 1 then searchByPnr(cookies, xsrf, a(0))
-      else searchByName(cookies, xsrf, a(0), a(1))
+    case xs if xs.headOption == Some("--deltagare") => 
+      val kurskod = xs.lift(1).getOrElse("").trim
+      if kurskod.isEmpty then Abort("--deltagare ska följas av kurskod sedan ev. tillfälleskoder")
+      
+      val kurser = getKurs(kurskod)
+      if kurser.isEmpty then Abort(s"Hittar inga kurstillfällen för $kurskod")
 
-    val results = searchResult("Resultat").arr
-    if results.isEmpty then
-      println("No student found.")
-      sys.exit(1)
+      val tillfallenArgs = xs.drop(2)
+      
+      val utvaldaKurser: Seq[Kurs] = 
+        if tillfallenArgs.isEmpty then
+          if kurser.length > 1 then 
+            log(s"Hittade ${kurser.length} tillfällen:\n${kurser.map(_.tillfalle).mkString(",")}")
+            log(s"Väljer den senaste: ${kurser(0)}") 
+          kurser.take(1)
+        else tillfallenArgs.flatMap: t =>
+          val kOpt = kurser.find(_.tillfalle == t)
+          if kOpt.isEmpty then 
+            err(s"Hittar inte tillfälle $t")
+            Seq()
+          else 
+            Seq(kOpt.get)
 
-    for student <- results do
-      val uid = student("Uid").str
-      val fornamn = student("Fornamn").str
-      val efternamn = student("Efternamn").str
-      val pnr = student.obj.get("Personnummer").map(_.str).getOrElse("?")
-      println(s"\n$fornamn $efternamn ($pnr)")
-      println(s"  UID: $uid")
+      for kurs <- utvaldaKurser do
+        val data = exportDeltagare(kurs.uid)
+        val date = java.time.LocalDate.now().toString
+        val tk = kurs.tillfalle 
+        val f1 = s"$outFilePrefix-$kurskod-$tk-$date.csv"
+        val f2 = s"$outFilePrefix-$kurskod-$tk-info-$date.csv"
+        os.write.over(outDir / f1, data.csv)
+        log(s"Saved to $outDir/$f1")
+        os.write.over(outDir / f2, data.info)
+        log(s"Saved to $outDir/$f2")
+    
+    case xs if xs.exists(_.startsWith("--")) => err(s"Unknown argument: ${xs.mkString(" ")}")
 
-      val kontakt = getKontakt(cookies, xsrf, uid)
-      val email = extractEmail(kontakt)
-      println(s"  Email: $email")
+    case xs =>
+      log(s"Searching for: ${xs.mkString(" ")}")
+      println(Student.showHeadings)
+      xs.foreach: arg =>
+        val ss = findAllStudents(pnrOrName = arg)
+        println(ss.map(_.show).mkString("","\n",""))
+
