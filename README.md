@@ -1,6 +1,7 @@
 # scala-ladok-requests
 A simple Scala 3 library for getting stuff from Ladok if you are a teacher and have a cookie.
 
+
 ## How to use this lib
 
 Add these directives to your scala-cli script:
@@ -8,6 +9,18 @@ Add these directives to your scala-cli script:
 //> using scala 3.8.3
 //> using dep se.bjornregnell::scala-ladok-requests:0.2.0
 ```
+
+## How to package a fat jar and run it
+
+If you clone this repo you can:
+```
+scala-cli --power package --assembly -o ladok.jar .
+```
+Then you can run the app like so:
+```
+./ladok.jar --help
+```
+
 
 ## How to copy your session cookie from Firefox after Ladok Login
 
