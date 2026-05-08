@@ -1,6 +1,6 @@
 # scala-ladok-requests
 
-A simple Scala 3 library for getting stuff from Ladok if you are a teacher and have a cookie.
+A simple Scala 3 library and terminal app for getting stuff from Ladok if you are a teacher and have a cookie.
 
 More details in [Agents.md](https://github.com/bjornregnell/scala-ladok-requests/blob/main/AGENTS.md)
 
