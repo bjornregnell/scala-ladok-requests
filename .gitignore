@@ -28,6 +28,7 @@ oss.sonatype.org
 **/.scalafmt.conf
 **/.ammonite
 **/target
+**/*.jar
 
 # Editor swap files
 *.swp   # vim
