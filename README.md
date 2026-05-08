@@ -1,5 +1,8 @@
 # scala-ladok-requests
+
 A simple Scala 3 library for getting stuff from Ladok if you are a teacher and have a cookie.
+
+More information details in [Agents.md](https://github.com/bjornregnell/scala-ladok-requests/blob/main/AGENTS.md)
 
 ## How to download the app and run it
 
@@ -62,11 +65,26 @@ Then you can run the app like so:
 
 ## How to use this code as a lib in your own apps
 
+First, make sure you have [Scala](https://scala-lang.org/download/) installed on your path (at least version 3.8.3).
+
 Add these directives to your scala-cli script:
 ```scala
 //> using scala 3.8.3
 //> using dep se.bjornregnell::scala-ladok-requests:0.2.0
 ```
+
+You can also use this lib in a Scala REPL session like so:
+```
+$ scala repl --dep se.bjornregnell::scala-ladok-requests:0.2.0
+
+Welcome to Scala 3.8.3 (21.0.9, Java OpenJDK 64-Bit Server VM).ests_3/0.2.0/scala-ladok-requests_3-0.2.0.jar
+Type in expressions for evaluation. Or try :help.
+
+scala> ladok.findAllStudents("Regne*, *").map(_.show).mkString("\n")
+```
+If you have copied the ladok cookie as explained above you should see a table with students that hav a family name beginning with "Regne".
+
+The code is the doc: https://github.com/bjornregnell/scala-ladok-requests/blob/main/ladok.scala
 
 ## How to publish using scala-cli
 
