@@ -5,11 +5,11 @@
 /** Query Ladok for student info or export course participant lists.
   *
   * Search by name or personnummer:
-  *   `scala-cli ladok.scala -- "Firstnam*" "Lastnam*"`
-  *   `scala-cli ladok.scala -- YYYYMMDDCCCC`
+  *   `scala ladok.scala -- "Firstnam*" "Lastnam*"`
+  *   `scala ladok.scala -- YYYYMMDDCCCC`
   *
   * Export participant list to CSV:
-  *   `scala-cli ladok.scala -- --kurskod EDAB05 --adresslista deltagare.csv`
+  *   `scala ladok.scala -- --kurskod EDAB05`
   */
 package ladok
 
