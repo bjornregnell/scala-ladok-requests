@@ -2,29 +2,49 @@
 
 ## Purpose
 
-This is a single-file Scala 3 CLI tool that queries the Swedish university student administration system **Ladok** via its internal JSON API. It lets teachers look up student contact information (primarily email) by name or Swedish personal identity number (personnummer), and export course participant lists to CSV.
+This is a single-file Scala 3 CLI tool (package `ladok`) that queries the Swedish university student administration system **Ladok** via its internal JSON API. It lets teachers look up student contact information (email, phone) by name or Swedish personal identity number (personnummer), list course instances, and export course participant lists to CSV.
 
 ## How it works
 
 1. The user copies their full `Cookie` header from an authenticated Firefox session on `start.ladok.se` into `~/.ladok-cookie`.
-2. The tool reads that cookie file, extracts the `XSRF-TOKEN`, and uses both to make authenticated requests against Ladok's internal APIs.
-3. Results are printed to stdout or saved to CSV files in the `out/` directory.
+2. The `Cookie` case class reads that file, extracts the `XSRF-TOKEN`, and provides auth headers for all requests via a Scala 3 `given`/`using` context parameter.
+3. Results are printed to stdout (student search) or saved to CSV files in the `out/` directory (participant export).
 
 ## Tech stack
 
-- **Scala 3** with **scala-cli** (no sbt/build tool project — directives are in the file header).
-- **requests-scala** (`com.lihaoyi::requests`) for HTTP requests (GET and PUT).
+- **Scala 3.8.3** with **scala-cli** (no sbt/build tool project — directives are in the file header).
+- **requests-scala** (`com.lihaoyi::requests:0.9.3`) for HTTP requests (GET and PUT).
 - **os-lib** for filesystem access.
 - **ujson** for JSON parsing.
 - os-lib and ujson come from the `//> using toolkit 0.9.2` directive; requests-scala is an explicit `//> using dep`.
 
+## Code structure
+
+Everything lives in `ladok.scala` under `package ladok`:
+
+- **`Cookie`** — case class holding cookie string + XSRF token, with `authHeaders`. A `given defaultCookie` reads from `~/.ladok-cookie`.
+- **`Student`** — case class wrapping a Ladok JSON student record. Lazily fetches contact info (`Epost`, `Telefonnummer`). Has `show`/`showKeys`/`showAll` formatting.
+- **`Kurs`** — case class for a course instance (uid, kod, tillfälle, start, slut, namn).
+- **`Abort`** — object with `ifNotOK`, `ifNotJSON`, and `apply` for error handling and exit.
+- **`get`/`put`** — top-level functions for authenticated HTTP requests, using `Cookie` as a context parameter.
+- **Extension methods** on `String` — `isKurskod`, `isEfternamnKommaFörnamn`, `toPersonnummer`.
+- **Extension method** on `JSON` — `extractStudents`.
+
+Publish directives live in a separate `publish.scala`.
+
 ## Running
 
 ```
-scala-cli ladok.scala -- "First*" "Last*"     # name search (wildcards ok)
-scala-cli ladok.scala -- YYYYMMDDCCCC          # personnummer search
-scala-cli ladok.scala -- --kurskod EDAB05 --adresslista deltagare.csv  # export CSV
+scala-cli ladok.scala -- --help                           # show usage
+scala-cli ladok.scala -- "Förnamn*" "Efternamn*"          # name search (wildcards ok)
+scala-cli ladok.scala -- "Efternamn, Förnamn"             # name with comma (surname first)
+scala-cli ladok.scala -- YYYYMMDDCCCC                     # personnummer search (several formats accepted)
+scala-cli ladok.scala -- --tillfälle EDAB05               # list course instances
+scala-cli ladok.scala -- --deltagare EDAB05               # export CSV for latest instance
+scala-cli ladok.scala -- --deltagare EDAB05 12345 67890   # export CSV for specific instances
 ```
+
+Personnummer accepts formats like `20101201-1234`, `101201-1234`, `1012011234`, `201012011234`.
 
 ## Ladok API endpoints used
 
@@ -39,13 +59,13 @@ All under `https://start.ladok.se`.
 
 - **Authentication is cookie-based.** There is no OAuth flow; the cookie must be manually copied from a browser. Cookies expire, so the user refreshes the file periodically.
 - **The API is internal/undocumented.** The endpoints are reverse-engineered from browser network traffic. Field names are in Swedish.
-- **Single file.** Keep everything in `ladok.scala` unless there is a strong reason to split. Publish directives live in a separate `project.scala`.
+- **Single file.** Keep everything in `ladok.scala` unless there is a strong reason to split. Publish directives live in a separate `publish.scala`.
 - **No secrets in the repo.** The cookie file lives at `~/.ladok-cookie` and must never be committed. CSV exports go to `out/` which is gitignored.
 - **Published to Maven Central** as `se.bjornregnell::scala-ladok-requests`.
 
 ## Extending
 
 When adding new Ladok queries, follow the existing pattern:
-- For JSON endpoints: add a function that calls `get(cookies, xsrf, url)` and parse the returned `ujson.Value`.
-- For export/mutation endpoints: use `put(cookies, xsrf, url, body)` with a `ujson.Obj` body.
+- For JSON endpoints: add a function that calls `get(url)` (with `Cookie` available as a `using` parameter) and parse the returned `ujson.Value`.
+- For export/mutation endpoints: use `put(url, body)` with a `ujson.Obj` body.
 - New API endpoints can be discovered via Firefox DevTools Network tab on `start.ladok.se`. The Ladok API uses Swedish field names throughout.
