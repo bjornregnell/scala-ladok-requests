@@ -49,34 +49,6 @@ Instructions below are for the [Firefox](https://www.firefox.com/sv-SE/) browser
 10. You can now run the tool. The cookie expires after some time, so you will need to repeat these steps when your session runs out.
 
 
-
-## How to copy your session cookie from Firefox after Ladok Login
-
-1. Log in to Ladok at https://start.ladok.se in Firefox.
-
-2. Once logged in, open Firefox DevTools by pressing `F12` (or `Ctrl+Shift+I`).
-
-3. Click the **Network** tab in DevTools.
-
-4. In the Ladok page, click on something (e.g. search for a student or navigate to a course) to trigger a network request.
-
-5. In the Network tab, look for a request to `start.ladok.se` (you can type `ladok` in the filter box to narrow it down). Click on one of the XHR requests (type "xhr").
-
-6. In the right panel, click the **Headers** tab.
-
-7. Scroll down to **Request Headers** and find the line that starts with `Cookie:`.
-
-8. Right-click the cookie value and choose **Copy Value**. It will be a long string containing things like `XSRF-TOKEN=...;JSESSIONID=...;...`.
-
-9. Open a terminal and run:
-   ```
-   cat > ~/.ladok-cookie
-   ```
-   Then paste the cookie value (`Ctrl+Shift+V` in most terminals), press `Enter`, then press `Ctrl+D` to save the file.
-
-10. You can now run the tool. The cookie expires after some time, so you will need to repeat these steps when your session runs out.
-
-
 ## How to package the app as a fat jar and run it
 
 If you clone this repo you can:
