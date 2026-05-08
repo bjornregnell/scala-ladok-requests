@@ -18,7 +18,7 @@ Run it with:
 
 Before you can extract data from ladok you need to copy the cookie, as explained in the next sections.
 
-## How to copy your session cookie from Firefox after Ladok Login
+## How to copy your session cookie
 
 Instructions below are for the [Firefox](https://www.firefox.com/sv-SE/) browser. A chatbot might help you how to do this in other browsers.
 
