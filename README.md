@@ -2,7 +2,7 @@
 
 A simple Scala 3 library for getting stuff from Ladok if you are a teacher and have a cookie.
 
-More information details in [Agents.md](https://github.com/bjornregnell/scala-ladok-requests/blob/main/AGENTS.md)
+More details in [Agents.md](https://github.com/bjornregnell/scala-ladok-requests/blob/main/AGENTS.md)
 
 ## How to download the app and run it
 
