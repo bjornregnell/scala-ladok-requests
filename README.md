@@ -90,7 +90,7 @@ The code is the doc: https://github.com/bjornregnell/scala-ladok-requests/blob/m
 
 If you clone this repo you can:
 ```
-scala-cli --power package --assembly -o ladok.jar .
+scala-cli --power package --assembly -f -o ladok.jar .
 ```
 Then you can run the app like so:
 ```
