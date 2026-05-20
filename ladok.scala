@@ -315,7 +315,7 @@ extension (s: String)
     else Some(s"20$t")
 
 @main def Main(args: String*): Unit =
-  def errMissingKurskod(opt: String) = err(s"ange kurskod, tex såhär: --deltagare EDAB05")
+  def errMissingKurskod(opt: String) = err(s"ange kurskod, tex såhär: --$opt EDAB05")
 
   args.toSeq match
     case Seq("--help") | Seq("-h") | Seq("--hjälp") => println(Help)
