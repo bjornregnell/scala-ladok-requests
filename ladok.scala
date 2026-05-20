@@ -149,7 +149,7 @@ case class Student(student: JSON)(using cookie: Cookie):
 
   def showAll: String = student.obj.mkString("\n")
 object Student:
-  def showHeadings = s"Personnummer;Namn;Epost;Telefonnummer"
+  def showContactHeadings = "Personnummer;Namn;Epost;Telefonnummer"
 end Student
 
 case class Kurs(
@@ -368,7 +368,7 @@ extension (s: String)
     
     case xs if xs.headOption == Some("--kontakt") =>
       log(s"Searching for: ${xs.mkString(" ")}")
-      print(Student.showHeadings)
+      print(Student.showContactHeadings)
       xs.foreach: arg =>
         val ss = findAllStudents(pnrOrName = arg)
         println(ss.map(_.showContact).mkString("\n"))
