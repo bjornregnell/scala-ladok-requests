@@ -79,7 +79,7 @@ $ scala repl --dep se.bjornregnell::scala-ladok-requests:0.2.0
 Welcome to Scala 3.8.3 (21.0.9, Java OpenJDK 64-Bit Server VM).ests_3/0.2.0/scala-ladok-requests_3-0.2.0.jar
 Type in expressions for evaluation. Or try :help.
 
-scala> ladok.findAllStudents("Regne*, *").map(_.show).mkString("\n")
+scala> ladok.findAllStudents("Regne*, *").map(_.showContact).mkString("\n")
 ```
 If you have copied the ladok cookie as explained above you should see a table with students that hav a family name beginning with "Regne".
 

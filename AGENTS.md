@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is a single-file Scala 3 CLI tool (package `ladok`) that queries the Swedish university student administration system **Ladok** via its internal JSON API. It lets teachers look up student contact information (email, phone) by name or Swedish personal identity number (personnummer), list course instances, and export course participant lists to CSV.
+This is a single-file Scala 3 CLI tool (package `ladok`) that queries the Swedish university student administration system **Ladok** via its internal JSON API. It lets teachers look up student contact information (email, phone) and attested course results by name or Swedish personal identity number (personnummer), list course instances, and export course participant lists to CSV.
 
 ## How it works
 
@@ -23,7 +23,7 @@ This is a single-file Scala 3 CLI tool (package `ladok`) that queries the Swedis
 Everything lives in `ladok.scala` under `package ladok`:
 
 - **`Cookie`** — case class holding cookie string + XSRF token, with `authHeaders`. A `given defaultCookie` reads from `~/.ladok-cookie`.
-- **`Student`** — case class wrapping a Ladok JSON student record. Lazily fetches contact info (`Epost`, `Telefonnummer`). Has `show`/`showKeys`/`showAll` formatting.
+- **`Student`** — case class wrapping a Ladok JSON student record. Lazily fetches contact info (`Kontakt`, `Epost`, `Telefonnummer`) and attested course results (`Kursöversikt`). Has `showContact`/`showResultat`/`showKeys`/`showAll` formatting.
 - **`Kurs`** — case class for a course instance (uid, kod, tillfälle, start, slut, namn).
 - **`Abort`** — object with `ifNotOK`, `ifNotJSON`, and `apply` for error handling and exit.
 - **`get`/`put`** — top-level functions for authenticated HTTP requests, using `Cookie` as a context parameter.
@@ -79,6 +79,7 @@ Personnummer accepts formats like `20101201-1234`, `101201-1234`, `1012011234`, 
 
 - **Student search:** `GET /gui/proxy/studentinformation/internal/student/filtrera`
 - **Contact info:** `GET /gui/proxy/studentinformation/internal/student/{uid}/kontaktuppgifter`
+- **Attested course results:** `GET /gui/proxy/resultat/internal/studentresultat/attesterade/student/{uid}`
 - **Course lookup:** `GET /gui/proxy/resultat/internal/kurstillfalle/filtrera`
 - **Participant CSV export:** `PUT /gui/proxy/studiedeltagande/internal/deltagare/kurstillfalle/export`
 
