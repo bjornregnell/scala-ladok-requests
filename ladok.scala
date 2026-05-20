@@ -16,13 +16,14 @@ package ladok
 import requests.Response as HTTP
 import ujson.Value       as JSON
 
-val help = 
+val Help = 
   s"""|Usage:
       |  scala ladok.scala -- --help
       |  scala ladok.scala -- --deltagare <kurskod> 
       |  scala ladok.scala -- --deltagare <kurskod> <tillfälle1> <tillfälle2> ...
-      |  scala ladok.scala -- <search input>
-      |      |
+      |  scala ladok.scala -- --resultat <search input>
+      |  scala ladok.scala -- --kontakt <search input>
+      |      
       |<search input> can be one or more of these items
       |  <perssonnummer>
       |  '<förnamn> <efternamn>'
@@ -40,9 +41,9 @@ val help =
       |https://github.com/bjornregnell/scala-ladok-requests
       |""".stripMargin
 
-val home = "https://github.com/bjornregnell/scala-ladok-requests"
+val Home = "https://github.com/bjornregnell/scala-ladok-requests"
 
-val welcome = s"*** Välkommen till scala-ladok-requests!\nSe README här: $home\n"
+val Welcome = s"*** Välkommen till scala-ladok-requests!\nSe README här: $Home\n"
 
 val HttpResponseOK = 200 
 
@@ -61,10 +62,11 @@ val HelpToFindCookie =
       |    It starts with something similar to LADOK_LANG=sv; XSRF-TOKEN=9f6685a9....
       |  Copy the whole cookie text""".stripMargin
 
+
 val HelpToPasteCookie = 
   s"""|Paste the cookie text into this file:
-      |${Cookie.defaultFile}
-      |More information: $home""".stripMargin
+      |${Cookie.cookieFile}
+      |More information: $Home""".stripMargin
 
 case class Cookie(cookies: String, xsrf: String):
   def authHeaders = Map(
@@ -75,32 +77,52 @@ case class Cookie(cookies: String, xsrf: String):
     "Content-Type" -> "application/json",
   )
 object Cookie:
-  val defaultFile = os.home / ".ladok-cookie"
-  given defaultCookie: Cookie = readCookieFile(defaultFile)
+  val cookieFile = os.home / ".ladok-cookie"
+  given defaultCookie: Cookie = readCookieFile()
 
   /** Read the full cookie string and extract XSRF token from ~/.ladok-cookie */
-  def readCookieFile(cookieFile: os.Path): Cookie =
-    if !os.exists(cookieFile) then
-      sys.error(s"""~/.ladok-cookie not found.\n$HelpToFindCookie\n$HelpToPasteCookie""")
+  def readCookieFile(): Cookie =
+    if !os.exists(cookieFile) then savePastedCookieToFileOrExit(missingFile = true)
     val cookies = os.read(cookieFile).replaceAll("\\s+", " ").trim
     val xsrf = cookies.split(";").map(_.trim)
       .find(_.startsWith("XSRF-TOKEN="))
       .map(_.stripPrefix("XSRF-TOKEN="))
       .getOrElse(sys.error("XSRF-TOKEN not found in cookie string"))
     Cookie(cookies, xsrf)
+
+  def savePastedCookieToFileOrExit(missingFile: Boolean): Unit =
+    if missingFile then log(s"Kaka behöver sparas i denna fil: $cookieFile")
+    warn("\nDu måste logga in och kopiera kakan!\n")
+    log(s"$HelpToFindCookie") 
+    val pasted = scala.io.StdIn.readLine("Klistra in kaka här + Enter eller tryck bara Enter för Exit.\n")
+    if Option(pasted).map(_.nonEmpty) == Some(true) then
+      log(s"Sparar kaka här: $cookieFile")
+      os.write.over(target = cookieFile, data = pasted)
+    else 
+      warn("Kaka saknas. Avslutar nu. Kör om igen med sparad kaka. ")
+      log(s"$HelpToPasteCookie")
+      System.exit(1)
+
 end Cookie
 
 case class Student(student: JSON)(using cookie: Cookie):
   def get(key: String): String = student(key).str  
-  lazy val Kontakt: JSON = getKontakt(Uid)
+  lazy val Kontakt: JSON = getStudentKontakt(Uid)
   lazy val Epost: String = util.Try(Kontakt("Epostadress").str).getOrElse("") 
   lazy val Telefonnummer: String = util.Try(Kontakt("Telefonnummer").str).getOrElse("") 
   lazy val Uid = get("Uid")
   lazy val Fornamn = get("Fornamn")
   lazy val Efternamn = get("Efternamn")
   lazy val Personnummer = get("Personnummer")
+  lazy val Kursöversikt: JSON = getStudentÖversiktResultat(Uid)
   
-  def show: String = s"$Personnummer;$Efternamn, $Fornamn;$Epost;$Telefonnummer"
+  def showContact: String = s"$Personnummer;$Efternamn, $Fornamn;$Epost;$Telefonnummer"
+
+  def showResultat: String = 
+    // traverse the JSON of Kursöversikt and yield a nice formattedResult string with one course per row with these headings: 
+    // Utb.kod;Omf. i hp;Resultat på kurs;Benämning;Period;Tillstånd
+    val formattedResult: String = ??? 
+    s"Resultat för $Personnummer: $Efternamn, $Fornamn; $Epost; $Telefonnummer\n---\n$formattedResult\n---\n" 
 
   def showKeys: String = 
     s"""|         Uid: $Uid
@@ -210,8 +232,13 @@ def findAllStudents(pnrOrName: String): Seq[Student] = {
   extractStudents(json)
 }
 
-def getKontakt(uid: String)(using cookie: Cookie): JSON =
+def getStudentKontakt(uid: String)(using cookie: Cookie): JSON =
   get(s"$StudentBase/$uid/kontaktuppgifter")
+
+def getStudentÖversiktResultat(uid: String)(using cookie: Cookie): JSON = 
+  // should build a JSON with an overview of all courses (kurser) and for each course its credits (hp) and grades (resultat) 
+  // perhaps it is s"$StudentBase/$uid/oversikt" that is the starting point?
+  ???
 
 def searchKurstillfalle(kurskod: String)(using cookie: Cookie): JSON =
   get(s"$LadokProxy/resultat/internal/kurstillfalle/filtrera?kurskod=$kurskod&page=1&limit=100&orderby=KURSBENAMNING_ASC&orderby=KURSKOD_ASC&orderby=START_DATUM_DESC&orderby=KURSTILLFALLESKOD_ASC")
@@ -277,7 +304,7 @@ extension (s: String)
   def errMissingKurskod(opt: String) = err(s"ange kurskod, tex såhär: --deltagare EDAB05")
 
   args.toSeq match
-    case Seq("--help") | Seq("-h") | Seq("--hjälp") => println(help)
+    case Seq("--help") | Seq("-h") | Seq("--hjälp") => println(Help)
 
     case Seq("--deltagare") => errMissingKurskod("--deltagare")  
 
@@ -325,12 +352,20 @@ extension (s: String)
         os.write.over(outDir / f2, data.info)
         log(s"Saved to $outDir/$f2")
     
-    case xs if xs.exists(_.startsWith("--")) => err(s"Unknown argument: ${xs.mkString(" ")}")
-
-    case xs =>
+    case xs if xs.headOption == Some("--kontakt") =>
       log(s"Searching for: ${xs.mkString(" ")}")
       println(Student.showHeadings)
       xs.foreach: arg =>
         val ss = findAllStudents(pnrOrName = arg)
-        println(ss.map(_.show).mkString("","\n",""))
+        println(ss.map(_.showContact).mkString("","\n",""))
+
+    case xs if xs.headOption == Some("--resultat") =>
+      log(s"Searching for: ${xs.mkString(" ")}")
+      println(Student.showHeadings)
+      xs.foreach: arg =>
+        val ss = findAllStudents(pnrOrName = arg)
+        println(ss.map(_.showResultat).mkString("","\n",""))
+
+    case xs => err(s"Unknown argument: ${xs.mkString(" ")}")
+
 
