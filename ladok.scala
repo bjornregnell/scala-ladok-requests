@@ -182,14 +182,14 @@ object Abort:
     val isNotAuthorized = body.contains(NotLoggedInHintInResponse)
 
     if response.statusCode != HttpResponseOK || isNotAuthorized then 
-      err(body)
+      
     
-      if body.contains(NotLoggedInHintInResponse) then
-        warn("\nDu måste logga in och kopiera kakan!\n")
-        log(s"$HelpToFindCookie") 
-        println(s"  cat >~/.ladok-cookie\n")
-
-      err(s"HTTP ${response.statusCode}")
+      if body.contains(NotLoggedInHintInResponse) 
+      then Cookie.savePastedCookieToFileOrExit(missingFile = os.exists(Cookie.cookieFile))
+      else 
+        err(body)
+        err(s"HTTP ${response.statusCode}")
+      println("Försök igen.")
       System.exit(1)
   }
 
@@ -368,17 +368,17 @@ extension (s: String)
     
     case xs if xs.headOption == Some("--kontakt") =>
       log(s"Searching for: ${xs.mkString(" ")}")
-      println(Student.showHeadings)
+      print(Student.showHeadings)
       xs.foreach: arg =>
         val ss = findAllStudents(pnrOrName = arg)
-        println(ss.map(_.showContact).mkString("","\n",""))
+        println(ss.map(_.showContact).mkString("\n"))
 
     case xs if xs.headOption == Some("--resultat") =>
       log(s"Searching for: ${xs.mkString(" ")}")
-      println(Student.showHeadings)
+      println("---")
       xs.foreach: arg =>
         val ss = findAllStudents(pnrOrName = arg)
-        println(ss.map(_.showResultat).mkString("","\n",""))
+        println(ss.map(_.showResultat).mkString("\n"))
 
     case xs if xs.nonEmpty => 
       err(s"Unknown argument: ${xs.mkString(" ")}")
