@@ -18,12 +18,19 @@ import ujson.Value       as JSON
 
 val Help = 
   s"""|Usage:
-      |  scala ladok.scala -- --help
-      |  scala ladok.scala -- --tillfälle <kurskod> 
-      |  scala ladok.scala -- --deltagare <kurskod> 
-      |  scala ladok.scala -- --deltagare <kurskod> <tillfälle1> <tillfälle2> ...
-      |  scala ladok.scala -- --resultat <search input>
-      |  scala ladok.scala -- --kontakt <search input>
+      |  Run from source: 
+      |    scala ladok.scala -- <args>    # see arguments below 
+      |  
+      |  Run downloaded jar:
+      |    ./ladok.jar <args>             # see arguments below
+      |
+      |Arguments:
+      |  --help                  # show usage
+      |  --tillfälle <kurskod>   # list course instances 
+      |  --deltagare <kurskod>   # export CSV for latest instance
+      |  --deltagare <kurskod> <tillfälle1> <tillfälle2> ...  # export CSV for specific instance(s)
+      |  --resultat <search input>  # print overview of result of all courses for each student 
+      |  --kontakt <search input>   # print contact details for each student
       |      
       |<search input> can be one or more of these items
       |  <perssonnummer>
@@ -376,6 +383,11 @@ extension (s: String)
         val ss = findAllStudents(pnrOrName = arg)
         println(ss.map(_.showResultat).mkString("","\n",""))
 
-    case xs => err(s"Unknown argument: ${xs.mkString(" ")}")
+    case xs if xs.nonEmpty => 
+      err(s"Unknown argument: ${xs.mkString(" ")}")
+      println(Help)
+      System.exit(1)
+
+    case _ => println(Help)
 
 
