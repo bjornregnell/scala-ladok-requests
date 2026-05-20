@@ -98,14 +98,21 @@ Then you can run the app like so:
 ```
 
 
-## How to publish using scala-cli
+## How to publish using scala-cli for maintainers
 
 After you have setup everything you can, if you have access, publish to Maven Central:
 ```
 scala-cli --power publish .
 ```
 
-### Setting up publish
+Publish to github after packaging (see "How to package" above):
+```
+gh auth login     # use gitHub.com and HTTPS and Login with browser
+gh release create v0.3.0 --title "v0.3.0" --generate-notes --latest
+gh release upload v0.3.0 ladok.jar --clobber
+```
+
+### Setting up publish for maintainers
 
 Before that you need too these tricky steps:
 
