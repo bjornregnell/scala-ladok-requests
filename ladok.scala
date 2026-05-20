@@ -2,22 +2,19 @@
 //> using toolkit 0.9.2
 //> using dep com.lihaoyi::requests:0.9.3
 
-/** Query Ladok for student info or export course participant lists.
-  *
-  * Search by name or personnummer:
-  *   `scala ladok.scala -- "Firstnam*" "Lastnam*"`
-  *   `scala ladok.scala -- YYYYMMDDCCCC`
-  *
-  * Export participant list to CSV:
-  *   `scala ladok.scala -- --kurskod EDAB05`
-  */
+/** Query Swedish Ladok for student and course information. */
 package ladok
 
 import requests.Response as HTTP
 import ujson.Value       as JSON
 
+val Version = "0.3.0"
+
 val Help = 
-  s"""|Usage:
+  s"""|scala-ladok-requests - A terminal app to query Ladok 
+      |Version: $Version
+      |
+      |Usage:
       |  Run from source: 
       |    scala ladok.scala -- <args>    # see arguments below 
       |  
@@ -51,7 +48,7 @@ val Help =
 
 val Home = "https://github.com/bjornregnell/scala-ladok-requests"
 
-val Welcome = s"*** Välkommen till scala-ladok-requests!\nSe README här: $Home\n"
+val Welcome = s"*** Välkommen till scala-ladok-requests v$Version\nSe README här: $Home\n"
 
 val HttpResponseOK = 200 
 
