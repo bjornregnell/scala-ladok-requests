@@ -119,11 +119,22 @@ case class Student(student: JSON)(using cookie: Cookie):
   
   def showContact: String = s"$Personnummer;$Efternamn, $Fornamn;$Epost;$Telefonnummer"
 
-  def showResultat: String = 
-    // traverse the JSON of Kursöversikt and yield a nice formattedResult string with one course per row with these headings: 
-    // Utb.kod;Omf. i hp;Resultat på kurs;Benämning;Period;Tillstånd
-    val formattedResult: String = ??? 
-    s"Resultat för $Personnummer: $Efternamn, $Fornamn; $Epost; $Telefonnummer\n---\n$formattedResult\n---\n" 
+  def showResultat: String =
+    val header = "Utb.kod;Omf. i hp;Resultat på kurs;Benämning;Period;Tillstånd"
+    val rows = Kursöversikt("StudentresultatPerKurs").arr.flatMap: kurs =>
+      val kursUID = util.Try(kurs("KursUID").str).getOrElse("")
+      // Course-level entry is the one whose UtbildningUID matches the KursUID
+      kurs("Studentresultat").arr
+        .find(r => util.Try(r("UtbildningUID").str).getOrElse("") == kursUID)
+        .map: r =>
+          val kod = util.Try(r("Utbildningskod").str).getOrElse("?")
+          val hp = util.Try(r("Omfattningsvarde").num.toString).getOrElse("?")
+          val betyg = util.Try(r("Betygsgradskod").str).getOrElse("")
+          val namn = util.Try(r("Benamning")("sv").str).getOrElse("?")
+          val period = util.Try(r("Examinationsdatum").str).getOrElse("")
+          s"$kod;$hp;$betyg;$namn;$period;Attesterad"
+    val formattedResult = (header +: rows.toSeq).mkString("\n")
+    s"Resultat för $Personnummer: $Efternamn, $Fornamn; $Epost; $Telefonnummer\n---\n$formattedResult\n---\n"
 
   def showKeys: String = 
     s"""|         Uid: $Uid
@@ -236,10 +247,8 @@ def findAllStudents(pnrOrName: String): Seq[Student] = {
 def getStudentKontakt(uid: String)(using cookie: Cookie): JSON =
   get(s"$StudentBase/$uid/kontaktuppgifter")
 
-def getStudentÖversiktResultat(uid: String)(using cookie: Cookie): JSON = 
-  // should build a JSON with an overview of all courses (kurser) and for each course its credits (hp) and grades (resultat) 
-  // perhaps it is s"$StudentBase/$uid/oversikt" that is the starting point?
-  ???
+def getStudentÖversiktResultat(uid: String)(using cookie: Cookie): JSON =
+  get(s"$LadokProxy/resultat/internal/studentresultat/attesterade/student/$uid")
 
 def searchKurstillfalle(kurskod: String)(using cookie: Cookie): JSON =
   get(s"$LadokProxy/resultat/internal/kurstillfalle/filtrera?kurskod=$kurskod&page=1&limit=100&orderby=KURSBENAMNING_ASC&orderby=KURSKOD_ASC&orderby=START_DATUM_DESC&orderby=KURSTILLFALLESKOD_ASC")
