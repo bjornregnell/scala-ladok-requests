@@ -19,6 +19,7 @@ import ujson.Value       as JSON
 val Help = 
   s"""|Usage:
       |  scala ladok.scala -- --help
+      |  scala ladok.scala -- --tillfälle <kurskod> 
       |  scala ladok.scala -- --deltagare <kurskod> 
       |  scala ladok.scala -- --deltagare <kurskod> <tillfälle1> <tillfälle2> ...
       |  scala ladok.scala -- --resultat <search input>
