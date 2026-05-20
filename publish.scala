@@ -1,5 +1,5 @@
 //> using publish.name scala-ladok-requests
-//> using publish.version 0.2.0
+//> using publish.version 0.3.0
 //> using publish.organization se.bjornregnell
 //> using publish.license "Apache-2.0"
 //> using publish.developer "bjornregnell|Björn Regnell|https://bjornregnell.se"
