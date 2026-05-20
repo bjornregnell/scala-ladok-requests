@@ -57,11 +57,11 @@ val StudentBase = s"$LadokProxy/studentinformation/internal/student"
 val HelpToFindCookie = 
   s"""|Open Firefox and press F12 to access developer tools.
       |After you have logged in to Ladok:
-      |  Goto the Network Tab and find a "File" row with "inloggadanvandare"
+      |  Goto the Network Tab and klick on the last "File" row GET request
       |  Goto the XHR Tab and then to Headers and scroll down to Request Headers 
-      |  Find the Cookie entry and select all the text after "Cookie:"
-      |    It starts with something similar to LADOK_LANG=sv; XSRF-TOKEN=9f6685a9....
-      |  Copy the whole cookie text""".stripMargin
+      |  Find the "Cookie:" entry starts with something similar to LADOK_LANG=sv; XSRF-TOKEN=9f6685a9...
+      |  Right-click on "Cookie:" and select Copy value to copy the whole cookie text
+      |""".stripMargin
 
 
 val HelpToPasteCookie = 
