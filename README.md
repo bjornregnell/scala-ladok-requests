@@ -66,15 +66,15 @@ These instructions are for the [Firefox](https://www.firefox.com/sv-SE/) browser
 
 First, make sure you have [Scala](https://scala-lang.org/download/) installed on your path (at least version 3.8.3).
 
-Include this using-directive in your project where 0.3.0 is changed to the [latest version](https://central.sonatype.com/artifact/se.bjornregnell/scala-ladok-requests_3/versions):
+Include this using-directive in your project where 0.3.1 is changed to the [latest version](https://central.sonatype.com/artifact/se.bjornregnell/scala-ladok-requests_3/versions):
 
 ```scala
 //> using scala 3.8.3
-//> using dep se.bjornregnell::scala-ladok-requests:0.3.0
+//> using dep se.bjornregnell::scala-ladok-requests:0.3.1
 ```
 You can also use this lib in a Scala REPL session like so:
 ```
-$ scala repl --dep se.bjornregnell::scala-ladok-requests:0.3.0
+$ scala repl --dep se.bjornregnell::scala-ladok-requests:0.3.1
 
 Welcome to Scala 3.8.3 (21.0.9, Java OpenJDK 64-Bit Server VM)
 Type in expressions for evaluation. Or try :help.
@@ -108,8 +108,8 @@ scala-cli --power publish .
 Publish to github after packaging (see "How to package" above):
 ```
 gh auth login     # use gitHub.com and HTTPS and Login with browser
-gh release create v0.3.0 --title "v0.3.0" --generate-notes --latest
-gh release upload v0.3.0 ladok.jar --clobber
+gh release create v0.3.1 --title "v0.3.1" --generate-notes --latest
+gh release upload v0.3.1 ladok.jar --clobber
 ```
 
 ### Setting up publish for maintainers

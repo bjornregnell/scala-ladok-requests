@@ -8,7 +8,7 @@ package ladok
 import requests.Response as HTTP
 import ujson.Value       as JSON
 
-val Version = "0.3.0"
+val Version = "0.3.1"
 
 val Help = 
   s"""|scala-ladok-requests - A terminal app to query Ladok 
