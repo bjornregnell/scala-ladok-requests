@@ -367,16 +367,16 @@ extension (s: String)
         log(s"Saved to $outDir/$f2")
     
     case xs if xs.headOption == Some("--kontakt") =>
-      log(s"Searching for: ${xs.mkString(" ")}")
-      print(Student.showContactHeadings)
-      xs.foreach: arg =>
+      log(s"Searching for: ${xs.tail.mkString(" ")}")
+      println(Student.showContactHeadings)
+      xs.tail.foreach: arg =>
         val ss = findAllStudents(pnrOrName = arg)
         println(ss.map(_.showContact).mkString("\n"))
 
     case xs if xs.headOption == Some("--resultat") =>
-      log(s"Searching for: ${xs.mkString(" ")}")
+      log(s"Searching for: ${xs.tail.mkString(" ")}")
       println("---")
-      xs.foreach: arg =>
+      xs.tail.foreach: arg =>
         val ss = findAllStudents(pnrOrName = arg)
         println(ss.map(_.showResultat).mkString("\n"))
 
