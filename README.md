@@ -97,6 +97,14 @@ Then you can run the app like so:
 ./ladok.jar --help
 ```
 
+## How to use mcp with scala
+
+https://www.yannmoisan.com/scala-with-claude-code.html
+
+```
+cs install metals-mcp
+metals-mcp --workspace . --client claude
+```
 
 ## How to publish using scala-cli for maintainers
 
