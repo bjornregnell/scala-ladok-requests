@@ -2,7 +2,7 @@
 
 A simple Scala 3 library and terminal app for getting stuff from Ladok if you are a teacher and have a cookie.
 
-BE NICE and do not spam requests witout some sleep, or else you may look like an attacker.
+BE NICE and do not spam requests without some sleep, or else you may look like an attacker.
 
 More details on usage in [Agents.md](https://github.com/bjornregnell/scala-ladok-requests/blob/main/AGENTS.md)
 
